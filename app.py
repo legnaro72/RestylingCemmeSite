@@ -97,9 +97,12 @@ def wp_upload(fbytes, fname):
 
 def wp_test():
     try:
-        return requests.get(API_TEST, timeout=8).status_code == 200
-    except Exception:
-        return False
+        r = requests.get(API_TEST, timeout=8)
+        if r.status_code == 200:
+            return True, "OK"
+        return False, f"Status Code {r.status_code}"
+    except Exception as e:
+        return False, str(e)
 
 
 # ============================================================
@@ -391,8 +394,11 @@ if st.session_state.mode == "home":
         st.session_state.env = env_choice
         st.rerun()
 
-    if not wp_test():
-        st.error(f"ATTENZIONE: Il sito WordPress ({st.session_state.env}) non è raggiungibile.")
+    # Test Connection
+    is_up, reason = wp_test()
+    if not is_up:
+        st.error(f"ATTENZIONE: Il sito WordPress ({st.session_state.env}) non è raggiungibile all'URL {API_TEST}.")
+        st.error(f"Dettaglio Errore: {reason}")
         if st.session_state.env == "Locale 🏡":
             st.info("Assicurati che LocalWP sia avviato e il sito locale sia online.")
         else:
