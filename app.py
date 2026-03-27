@@ -17,31 +17,42 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-WP_URL = os.getenv("WP_URL", "http://studiociemme-test.local")
-WP_USER = os.getenv("WP_USER", "admin")
-WP_APP_PASSWORD = os.getenv("WP_APP_PASSWORD", "")
-API_BASE = f"{WP_URL}/wp-json/wp/v2"
+LOCAL_WP_URL = os.getenv("WP_URL", "http://studiociemme-test.local")
+LOCAL_WP_USER = os.getenv("WP_USER", "admin")
+LOCAL_WP_APP_PASSWORD = os.getenv("WP_APP_PASSWORD", "")
+
+STAGING_WP_URL = "https://staging.studiociemme.net"
+STAGING_WP_USER = "info_5qownsi4"
+STAGING_WP_APP_PASSWORD = "'ES2Q!Fff1_7*803e"
 
 IMG_TYPES = ["jpg", "jpeg", "png", "gif", "webp"]
 MAX_IMG_MB = 5
 
+def get_wp_config():
+    if "use_staging" in st.session_state and st.session_state.use_staging:
+        return STAGING_WP_URL, STAGING_WP_USER, STAGING_WP_APP_PASSWORD, f"{STAGING_WP_URL}/wp-json/wp/v2"
+    else:
+        return LOCAL_WP_URL, LOCAL_WP_USER, LOCAL_WP_APP_PASSWORD, f"{LOCAL_WP_URL}/wp-json/wp/v2"
 
 # ============================================================
 # WP API
 # ============================================================
 def _auth():
-    return {"Authorization": f"Basic {base64.b64encode(f'{WP_USER}:{WP_APP_PASSWORD}'.encode()).decode()}"}
+    _, u, p, _ = get_wp_config()
+    return {"Authorization": f"Basic {base64.b64encode(f'{u}:{p}'.encode()).decode()}"}
 
 def wp_read(ep, params=None):
+    _, _, _, api_base = get_wp_config()
     try:
-        r = requests.get(f"{API_BASE}/{ep}", headers=_auth(), params=params or {}, timeout=15)
+        r = requests.get(f"{api_base}/{ep}", headers=_auth(), params=params or {}, timeout=15)
         return r.json() if r.status_code == 200 else None
     except Exception:
         return None
 
 def wp_write(ep, data):
+    _, _, _, api_base = get_wp_config()
     try:
-        r = requests.post(f"{API_BASE}/{ep}",
+        r = requests.post(f"{api_base}/{ep}",
                           headers={**_auth(), "Content-Type": "application/json"},
                           json=data, timeout=20)
         if r.status_code in [200, 201]:
@@ -55,9 +66,10 @@ def wp_write(ep, data):
         return False, str(e)
 
 def wp_upload(fbytes, fname):
+    _, _, _, api_base = get_wp_config()
     for _ in range(3):
         try:
-            r = requests.post(f"{API_BASE}/media",
+            r = requests.post(f"{api_base}/media",
                               headers={**_auth(), "Content-Disposition": f'attachment; filename="{fname}"'},
                               data=fbytes, timeout=30)
             if r.status_code in [200, 201]:
@@ -68,8 +80,9 @@ def wp_upload(fbytes, fname):
     return None
 
 def wp_test():
+    url, _, _, _ = get_wp_config()
     try:
-        return requests.get(f"{WP_URL}/wp-json/", timeout=8).status_code == 200
+        return requests.get(f"{url}/wp-json/", timeout=8).status_code == 200
     except Exception:
         return False
 
@@ -294,7 +307,7 @@ def init():
     for k, v in {
         "blocks": [], "item": None, "item_type": None, "item_title": "",
         "mode": "home", "saved": True, "msg": "", "msg_ok": True,
-        "processed_uploads": set(), "debug_log": "",
+        "processed_uploads": set(), "debug_log": "", "use_staging": False,
     }.items():
         if k not in st.session_state:
             st.session_state[k] = v
@@ -347,12 +360,20 @@ st.markdown(f'<div class="hdr"><div><h2>Studio Ciemme</h2>'
             f'<p class="sub">Editor visivo del sito</p></div><div>{pill}</div></div>',
             unsafe_allow_html=True)
 
+hc1, hc2 = st.columns([7, 3])
+with hc2:
+    st.toggle("🌐 Usa sito di Staging", key="use_staging")
+
 # ================================================================
 # HOME
 # ================================================================
 if st.session_state.mode == "home":
+    url, _, _, _ = get_wp_config()
+    target_env = "Sito Staging" if st.session_state.use_staging else "LocalWP"
+    st.info(f"Connesso a: **{target_env} ({url})**")
+
     if not wp_test():
-        st.error("WordPress non raggiungibile. Avvia LocalWP.")
+        st.error(f"WordPress non raggiungibile su {url}. Controlla la connessione o l'ambiente.")
         st.stop()
 
     if st.session_state.msg:
@@ -423,7 +444,8 @@ if st.session_state.mode == "home":
                 deleted = 0
                 for p in posts:
                     if st.session_state.get(f"chk_{p['id']}"):
-                        res = requests.delete(f"{API_BASE}/posts/{p['id']}?force=true", headers=_auth())
+                        _, _, _, api_base = get_wp_config()
+                        res = requests.delete(f"{api_base}/posts/{p['id']}?force=true", headers=_auth())
                         if res.status_code in [200, 204]: deleted += 1
                 if deleted > 0:
                     st.session_state.msg = f"{deleted} News eliminate!"
@@ -456,7 +478,8 @@ if st.session_state.mode == "home":
                 st.rerun()
         with c4:
             if st.button("🗑️ Elimina", key=f"dp_{pid}", use_container_width=True):
-                res = requests.delete(f"{API_BASE}/posts/{pid}?force=true", headers=_auth())
+                _, _, _, api_base = get_wp_config()
+                res = requests.delete(f"{api_base}/posts/{pid}?force=true", headers=_auth())
                 if res.status_code in [200, 204]:
                     st.session_state.msg = "News eliminata!"
                     st.session_state.msg_ok = True
@@ -685,7 +708,8 @@ elif st.session_state.mode in ["edit", "new"]:
                 st.session_state.msg_ok = False
                 st.rerun()
 
-            debug.append(f"\nCreazione post: POST {API_BASE}/posts")
+            _, _, _, api_base = get_wp_config()
+            debug.append(f"\nCreazione post: POST {api_base}/posts")
             ok, result = wp_write("posts", {
                 "title": title,
                 "content": final_html,
@@ -722,7 +746,8 @@ elif st.session_state.mode in ["edit", "new"]:
             item_ep = item["type"]  # "pages" o "posts"
             endpoint = f"{item_ep}/{item_id}"
 
-            debug.append(f"\nModifica: POST {API_BASE}/{endpoint}")
+            _, _, _, api_base = get_wp_config()
+            debug.append(f"\nModifica: POST {api_base}/{endpoint}")
             debug.append(f"Payload: title='{title}', content=({len(final_html)} char)")
 
             payload = {"content": final_html}
