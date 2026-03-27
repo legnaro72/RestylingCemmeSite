@@ -23,11 +23,15 @@ ENVS = {
         "url": os.getenv("LOCAL_WP_URL", "http://studiociemme-test.local"),
         "user": os.getenv("LOCAL_WP_USER", "admin"),
         "pass": os.getenv("LOCAL_WP_APP_PASSWORD", ""),
+        "api_base": "/?rest_route=/wp/v2",
+        "api_test": "/?rest_route=/"
     },
     "Staging 🚀": {
         "url": os.getenv("STAGING_WP_URL", "https://staging.studiociemme.net"),
         "user": os.getenv("STAGING_WP_USER", "info_5qownsi4"),
         "pass": os.getenv("STAGING_WP_APP_PASSWORD", ""),
+        "api_base": "/?rest_route=/wp/v2",
+        "api_test": "/?rest_route=/"
     }
 }
 
@@ -40,7 +44,8 @@ _ce = ENVS.get(st.session_state.env, ENVS["Locale 🏡"])
 WP_URL = _ce["url"]
 WP_USER = _ce["user"]
 WP_APP_PASSWORD = _ce["pass"]
-API_BASE = f"{WP_URL}/wp-json/wp/v2"
+API_BASE = f"{WP_URL}{_ce['api_base']}"
+API_TEST = f"{WP_URL}{_ce['api_test']}"
 
 IMG_TYPES = ["jpg", "jpeg", "png", "gif", "webp"]
 MAX_IMG_MB = 5
@@ -54,14 +59,17 @@ def _auth():
 
 def wp_read(ep, params=None):
     try:
-        r = requests.get(f"{API_BASE}/{ep}", headers=_auth(), params=params or {}, timeout=15)
+        # Per far funzionare ?rest_route= dobbiamo gestire l'unione dei parametri
+        url = f"{API_BASE}/{ep}" if "/?" not in API_BASE else f"{API_BASE}{ep}"
+        r = requests.get(url, headers=_auth(), params=params or {}, timeout=15)
         return r.json() if r.status_code == 200 else None
     except Exception:
         return None
 
 def wp_write(ep, data):
     try:
-        r = requests.post(f"{API_BASE}/{ep}",
+        url = f"{API_BASE}/{ep}" if "/?" not in API_BASE else f"{API_BASE}{ep}"
+        r = requests.post(url,
                           headers={**_auth(), "Content-Type": "application/json"},
                           json=data, timeout=20)
         if r.status_code in [200, 201]:
@@ -77,7 +85,8 @@ def wp_write(ep, data):
 def wp_upload(fbytes, fname):
     for _ in range(3):
         try:
-            r = requests.post(f"{API_BASE}/media",
+            url = f"{API_BASE}/media" if "/?" not in API_BASE else f"{API_BASE}media"
+            r = requests.post(url,
                               headers={**_auth(), "Content-Disposition": f'attachment; filename="{fname}"'},
                               data=fbytes, timeout=30)
             if r.status_code in [200, 201]:
@@ -89,7 +98,7 @@ def wp_upload(fbytes, fname):
 
 def wp_test():
     try:
-        return requests.get(f"{WP_URL}/wp-json/", timeout=8).status_code == 200
+        return requests.get(API_TEST, timeout=8).status_code == 200
     except Exception:
         return False
 
