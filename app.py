@@ -57,10 +57,26 @@ MAX_IMG_MB = 5
 def _auth():
     return {"Authorization": f"Basic {base64.b64encode(f'{WP_USER}:{WP_APP_PASSWORD}'.encode()).decode()}"}
 
+def _make_req(method, url, **kwargs):
+    # Bypass DNS issue for .local domains in Python on Windows
+    headers = kwargs.get("headers", _auth())
+    if "studiociemme-test.local" in url:
+        url = url.replace("studiociemme-test.local", "127.0.0.1")
+        headers["Host"] = "studiociemme-test.local"
+    kwargs["headers"] = headers
+    
+    if method == "GET":
+        return requests.get(url, **kwargs)
+    elif method == "POST":
+        return requests.post(url, **kwargs)
+    elif method == "DELETE":
+        return requests.delete(url, **kwargs)
+    return None
+
 def wp_read(ep, params=None):
     try:
         url = f"{API_BASE}/{ep}"
-        r = requests.get(url, headers=_auth(), params=params or {}, timeout=15)
+        r = _make_req("GET", url, params=params or {}, timeout=15)
         return r.json() if r.status_code == 200 else None
     except Exception:
         return None
@@ -68,9 +84,8 @@ def wp_read(ep, params=None):
 def wp_write(ep, data):
     try:
         url = f"{API_BASE}/{ep}"
-        r = requests.post(url,
-                          headers={**_auth(), "Content-Type": "application/json"},
-                          json=data, timeout=20)
+        headers = {**_auth(), "Content-Type": "application/json"}
+        r = _make_req("POST", url, headers=headers, json=data, timeout=20)
         if r.status_code in [200, 201]:
             return True, r.json()
         try:
@@ -85,9 +100,8 @@ def wp_upload(fbytes, fname):
     for _ in range(3):
         try:
             url = f"{API_BASE}/media"
-            r = requests.post(url,
-                              headers={**_auth(), "Content-Disposition": f'attachment; filename="{fname}"'},
-                              data=fbytes, timeout=30)
+            headers = {**_auth(), "Content-Disposition": f'attachment; filename="{fname}"'}
+            r = _make_req("POST", url, headers=headers, data=fbytes, timeout=30)
             if r.status_code in [200, 201]:
                 return r.json().get("source_url")
         except Exception:
@@ -97,7 +111,7 @@ def wp_upload(fbytes, fname):
 
 def wp_test():
     try:
-        r = requests.get(API_TEST, timeout=8)
+        r = _make_req("GET", API_TEST, timeout=8)
         if r.status_code == 200:
             return True, "OK"
         return False, f"Status Code {r.status_code}"
@@ -473,8 +487,8 @@ if st.session_state.mode == "home":
                 deleted = 0
                 for p in posts:
                     if st.session_state.get(f"chk_{p['id']}"):
-                        res = requests.delete(f"{API_BASE}/posts/{p['id']}?force=true", headers=_auth())
-                        if res.status_code in [200, 204]: deleted += 1
+                        res = _make_req("DELETE", f"{API_BASE}/posts/{p['id']}?force=true")
+                        if res and res.status_code in [200, 204]: deleted += 1
                 if deleted > 0:
                     st.session_state.msg = f"{deleted} News eliminate!"
                     st.session_state.msg_ok = True
@@ -506,8 +520,8 @@ if st.session_state.mode == "home":
                 st.rerun()
         with c4:
             if st.button("🗑️ Elimina", key=f"dp_{pid}", use_container_width=True):
-                res = requests.delete(f"{API_BASE}/posts/{pid}?force=true", headers=_auth())
-                if res.status_code in [200, 204]:
+                res = _make_req("DELETE", f"{API_BASE}/posts/{pid}?force=true")
+                if res and res.status_code in [200, 204]:
                     st.session_state.msg = "News eliminata!"
                     st.session_state.msg_ok = True
                 else:
