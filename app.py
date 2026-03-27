@@ -23,8 +23,8 @@ ENVS = {
         "url": os.getenv("LOCAL_WP_URL", "http://studiociemme-test.local"),
         "user": os.getenv("LOCAL_WP_USER", "admin"),
         "pass": os.getenv("LOCAL_WP_APP_PASSWORD", ""),
-        "api_base": "/?rest_route=/wp/v2",
-        "api_test": "/?rest_route=/"
+        "api_base": "/wp-json/wp/v2",
+        "api_test": "/wp-json/"
     },
     "Staging 🚀": {
         "url": os.getenv("STAGING_WP_URL", "https://staging.studiociemme.net"),
@@ -59,8 +59,7 @@ def _auth():
 
 def wp_read(ep, params=None):
     try:
-        # Per far funzionare ?rest_route= dobbiamo gestire l'unione dei parametri
-        url = f"{API_BASE}/{ep}" if "/?" not in API_BASE else f"{API_BASE}{ep}"
+        url = f"{API_BASE}/{ep}"
         r = requests.get(url, headers=_auth(), params=params or {}, timeout=15)
         return r.json() if r.status_code == 200 else None
     except Exception:
@@ -68,7 +67,7 @@ def wp_read(ep, params=None):
 
 def wp_write(ep, data):
     try:
-        url = f"{API_BASE}/{ep}" if "/?" not in API_BASE else f"{API_BASE}{ep}"
+        url = f"{API_BASE}/{ep}"
         r = requests.post(url,
                           headers={**_auth(), "Content-Type": "application/json"},
                           json=data, timeout=20)
@@ -85,7 +84,7 @@ def wp_write(ep, data):
 def wp_upload(fbytes, fname):
     for _ in range(3):
         try:
-            url = f"{API_BASE}/media" if "/?" not in API_BASE else f"{API_BASE}media"
+            url = f"{API_BASE}/media"
             r = requests.post(url,
                               headers={**_auth(), "Content-Disposition": f'attachment; filename="{fname}"'},
                               data=fbytes, timeout=30)
