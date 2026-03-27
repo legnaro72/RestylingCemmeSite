@@ -19,13 +19,6 @@ load_dotenv()
 
 # Configuration environments
 ENVS = {
-    "Locale 🏡": {
-        "url": os.getenv("LOCAL_WP_URL", "http://studiociemme-test.local"),
-        "user": os.getenv("LOCAL_WP_USER", "admin"),
-        "pass": os.getenv("LOCAL_WP_APP_PASSWORD", ""),
-        "api_base": "/wp-json/wp/v2",
-        "api_test": "/wp-json/"
-    },
     "Staging 🚀": {
         "url": os.getenv("STAGING_WP_URL", "https://staging.studiociemme.net"),
         "user": os.getenv("STAGING_WP_USER", "info_5qownsi4"),
@@ -37,10 +30,10 @@ ENVS = {
 
 # Ensure env is in session state for global access
 if "env" not in st.session_state:
-    st.session_state.env = "Locale 🏡"
+    st.session_state.env = "Staging 🚀"
 
 # Current config based on selection
-_ce = ENVS.get(st.session_state.env, ENVS["Locale 🏡"])
+_ce = ENVS.get(st.session_state.env, ENVS["Staging 🚀"])
 WP_URL = _ce["url"]
 WP_USER = _ce["user"]
 WP_APP_PASSWORD = _ce["pass"]
@@ -339,7 +332,7 @@ def init():
     for k, v in {
         "blocks": [], "item": None, "item_type": None, "item_title": "",
         "mode": "home", "saved": True, "msg": "", "msg_ok": True,
-        "processed_uploads": set(), "debug_log": "", "env": "Locale 🏡"
+        "processed_uploads": set(), "debug_log": "", "env": "Staging 🚀"
     }.items():
         if k not in st.session_state:
             st.session_state[k] = v
@@ -396,27 +389,15 @@ st.markdown(f'<div class="hdr"><div><h2>Studio Ciemme</h2>'
 # HOME
 # ================================================================
 if st.session_state.mode == "home":
-    # Selezione Ambiente
-    st.markdown("### 🌐 Ambiente di lavoro")
-    env_choice = st.radio("Scegli su quale sito operare:", 
-                         options=list(ENVS.keys()), 
-                         index=0 if st.session_state.env == "Locale 🏡" else 1,
-                         horizontal=True,
-                         key="env_selector")
-    
-    if env_choice != st.session_state.env:
-        st.session_state.env = env_choice
-        st.rerun()
+    # Mostra ambiente corrente
+    st.markdown(f"### 🌐 Connesso a: **{st.session_state.env}** ({WP_URL})")
 
     # Test Connection
     is_up, reason = wp_test()
     if not is_up:
-        st.error(f"ATTENZIONE: Il sito WordPress ({st.session_state.env}) non è raggiungibile all'URL {API_TEST}.")
-        st.error(f"Dettaglio Errore: {reason}")
-        if st.session_state.env == "Locale 🏡":
-            st.info("Assicurati che LocalWP sia avviato e il sito locale sia online.")
-        else:
-            st.info("Verifica la tua connessione internet e le credenziali del sito staging.")
+        st.error(f"Il sito WordPress non è raggiungibile.")
+        st.error(f"Dettaglio: {reason}")
+        st.info("Verifica la tua connessione internet e le credenziali.")
         st.stop()
 
     if st.session_state.msg:
