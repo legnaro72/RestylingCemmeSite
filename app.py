@@ -23,8 +23,8 @@ ENVS = {
         "url": os.getenv("STAGING_WP_URL", "https://staging.studiociemme.net"),
         "user": os.getenv("STAGING_WP_USER", "info_5qownsi4"),
         "pass": os.getenv("STAGING_WP_APP_PASSWORD", ""),
-        "api_base": "/?rest_route=/wp/v2",
-        "api_test": "/?rest_route=/"
+        "api_base": "/wp-json/wp/v2",
+        "api_test": "/wp-json"
     }
 }
 
@@ -51,20 +51,27 @@ def _auth():
     return {"Authorization": f"Basic {base64.b64encode(f'{WP_USER}:{WP_APP_PASSWORD}'.encode()).decode()}"}
 
 def _make_req(method, url, **kwargs):
-    # Bypass DNS issue for .local domains in Python on Windows
-    headers = kwargs.get("headers", _auth())
-    if "studiociemme-test.local" in url:
-        url = url.replace("studiociemme-test.local", "127.0.0.1")
-        headers["Host"] = "studiociemme-test.local"
-    kwargs["headers"] = headers
+    headers = kwargs.get("headers", {})
     
+    # WordPress API auth
+    wp_token = base64.b64encode(f"{WP_USER}:{WP_APP_PASSWORD}".encode()).decode()
+    headers["Authorization"] = f"Basic {wp_token}"
+    
+    kwargs["headers"] = headers
+
+    # Staging basic auth (hosting)
+    staging_user = os.getenv("STAGING_BASIC_USER")
+    staging_pass = os.getenv("STAGING_BASIC_PASSWORD")
+    
+    if staging_user and staging_pass:
+        kwargs["auth"] = (staging_user, staging_pass)
+
     if method == "GET":
         return requests.get(url, **kwargs)
     elif method == "POST":
         return requests.post(url, **kwargs)
     elif method == "DELETE":
         return requests.delete(url, **kwargs)
-    return None
 
 def wp_read(ep, params=None):
     try:
@@ -391,6 +398,8 @@ st.markdown(f'<div class="hdr"><div><h2>Studio Ciemme</h2>'
 if st.session_state.mode == "home":
     # Mostra ambiente corrente
     st.markdown(f"### 🌐 Connesso a: **{st.session_state.env}** ({WP_URL})")
+    st.write("WP USER:", WP_USER)
+    st.write("WP URL:", WP_URL)
 
     # Test Connection
     is_up, reason = wp_test()
