@@ -21,10 +21,10 @@ load_dotenv(override=True)
 ENVS = {
     "Staging 🚀": {
         "url": os.getenv("STAGING_WP_URL", "https://staging.studiociemme.net"),
-        "user": os.getenv("STAGING_WP_USER", "info_5qownsi4"),
+        "user": os.getenv("STAGING_WP_USER", "Marco"),
         "pass": os.getenv("STAGING_WP_APP_PASSWORD", ""),
-        "api_base": "/wp-json/wp/v2",
-        "api_test": "/wp-json"
+        "api_base": "/?rest_route=/wp/v2",
+        "api_test": "/?rest_route=/"
     }
 }
 
