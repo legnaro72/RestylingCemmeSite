@@ -15,7 +15,7 @@ from html import unescape
 from typing import Any
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 # Configuration environments
 ENVS = {
@@ -35,8 +35,8 @@ if "env" not in st.session_state:
 # Current config based on selection
 _ce = ENVS.get(st.session_state.env, ENVS["Staging 🚀"])
 WP_URL = _ce["url"]
-WP_USER = _ce["user"]
-WP_APP_PASSWORD = _ce["pass"]
+WP_USER = "Marco"
+WP_APP_PASSWORD = "Dr8z3DiUY9wMbwJs40NW61xK"
 API_BASE = f"{WP_URL}{_ce['api_base']}"
 API_TEST = f"{WP_URL}{_ce['api_test']}"
 
@@ -400,6 +400,7 @@ if st.session_state.mode == "home":
     st.markdown(f"### 🌐 Connesso a: **{st.session_state.env}** ({WP_URL})")
     st.write("WP USER:", WP_USER)
     st.write("WP URL:", WP_URL)
+    st.write("ENV USER RAW:", os.getenv("STAGING_WP_USER"))
 
     # Test Connection
     is_up, reason = wp_test()
