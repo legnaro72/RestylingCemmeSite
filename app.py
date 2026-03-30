@@ -17,14 +17,22 @@ from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
+def get_env(key, default):
+    try:
+        if hasattr(st, "secrets") and key in st.secrets:
+            return st.secrets[key]
+    except Exception:
+        pass
+    return os.getenv(key, default)
+
 # Configuration environments
 ENVS = {
     "Staging 🚀": {
-        "url": os.getenv("STAGING_WP_URL", "https://staging.studiociemme.net"),
-        "user": os.getenv("STAGING_WP_USER", "Marco"),
-        "pass": os.getenv("STAGING_WP_APP_PASSWORD", "vtuS 60T7 pWMM 63zC 2Jwo PYfQ"),
+        "url": get_env("STAGING_WP_URL", "https://staging.studiociemme.net"),
+        "user": get_env("STAGING_WP_USER", "Marco"),
+        "pass": get_env("STAGING_WP_APP_PASSWORD", "vtuS 60T7 pWMM 63zC 2Jwo PYfQ"),
         "api_base": "/?rest_route=/wp/v2",
-        "api_test": "/?rest_route=/"
+        "api_test": "/?rest_route=/wp/v2/users/me"
     }
 }
 
@@ -60,8 +68,8 @@ def _make_req(method, url, **kwargs):
     kwargs["headers"] = headers
 
     # Staging basic auth (hosting)
-    staging_user = os.getenv("STAGING_BASIC_USER", "info_5qownsi4")
-    staging_pass = os.getenv("STAGING_BASIC_PASSWORD", "ES2Q!Fff1_7*803e")
+    staging_user = get_env("STAGING_BASIC_USER", "info_5qownsi4")
+    staging_pass = get_env("STAGING_BASIC_PASSWORD", "ES2Q!Fff1_7*803e")
     
     if staging_user and staging_pass:
         kwargs["auth"] = (staging_user, staging_pass)
@@ -114,6 +122,8 @@ def wp_test():
         r = _make_req("GET", API_TEST, timeout=8)
         if r.status_code == 200:
             return True, "OK"
+        elif r.status_code == 401 or r.status_code == 403:
+            return False, f"Errore di Autenticazione (HTTP {r.status_code})"
         return False, f"Status Code {r.status_code}"
     except Exception as e:
         return False, str(e)
@@ -400,7 +410,7 @@ if st.session_state.mode == "home":
     st.markdown(f"### 🌐 Connesso a: **{st.session_state.env}** ({WP_URL})")
     st.write("WP USER:", WP_USER)
     st.write("WP URL:", WP_URL)
-    st.write("ENV USER RAW:", os.getenv("STAGING_WP_USER"))
+    st.write("ENV USER RAW:", get_env("STAGING_WP_USER", "Marco default"))
 
     # Test Connection
     is_up, reason = wp_test()
