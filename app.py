@@ -22,7 +22,7 @@ ENVS = {
     "Staging 🚀": {
         "url": os.getenv("STAGING_WP_URL", "https://staging.studiociemme.net"),
         "user": os.getenv("STAGING_WP_USER", "Marco"),
-        "pass": os.getenv("STAGING_WP_APP_PASSWORD", ""),
+        "pass": os.getenv("STAGING_WP_APP_PASSWORD", "vtuS 60T7 pWMM 63zC 2Jwo PYfQ"),
         "api_base": "/?rest_route=/wp/v2",
         "api_test": "/?rest_route=/"
     }
@@ -35,8 +35,8 @@ if "env" not in st.session_state:
 # Current config based on selection
 _ce = ENVS.get(st.session_state.env, ENVS["Staging 🚀"])
 WP_URL = _ce["url"]
-WP_USER = "Marco"
-WP_APP_PASSWORD = "Dr8z3DiUY9wMbwJs40NW61xK"
+WP_USER = _ce["user"]
+WP_APP_PASSWORD = _ce["pass"]
 API_BASE = f"{WP_URL}{_ce['api_base']}"
 API_TEST = f"{WP_URL}{_ce['api_test']}"
 
