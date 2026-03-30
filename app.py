@@ -277,7 +277,18 @@ def blocks_to_html(blocks: list[dict[str, Any]]) -> str:
                        f'frameborder="0" allowfullscreen style="max-width:100%;border-radius:8px;"></iframe></div>')
 
         elif t == "mappa" and c:
-            out.append(f'<div style="margin:2rem 0;"><iframe src="{c}" width="100%" height="400" '
+            clean_url = c
+            # Se ha incollato l'intro <iframe> estraiamo solo l'URL src
+            im = re.search(r'<iframe[^>]+src=["\']([^"\']+)["\']', c, flags=re.IGNORECASE)
+            if im:
+                clean_url = im.group(1)
+            
+            # Se ha inserito un link classico anziché l'embed code
+            if "google" in clean_url and "maps" in clean_url and "embed" not in clean_url:
+                # Mostriamo un warning in anteprima e proviamo a forzare l'embed
+                out.append(f'<div style="color:red; font-size:12px;">Attenzione: Hai inserito un link classico di Google Maps. Su Google Maps clicca su "Condividi" -> "Incorpora una mappa" e incolla quel codice.</div>')
+
+            out.append(f'<div style="margin:2rem 0;"><iframe src="{clean_url}" width="100%" height="400" '
                        f'style="border:0;border-radius:8px;" allowfullscreen loading="lazy"></iframe></div>')
 
         elif t == "accordion":
@@ -694,8 +705,8 @@ elif st.session_state.mode in ["edit", "new"]:
                               placeholder="https://youtube.com/watch?v=...")
 
             elif tipo == "mappa":
-                st.text_input("URL Embed Maps", value=b["contenuto"], key=f"c{bid}",
-                              placeholder="Incolla embed...")
+                st.text_area("Incolla Codice Embed Maps", value=b["contenuto"], key=f"c{bid}",
+                              placeholder="<iframe src=\"https://www.google.com/maps/embed...\"></iframe>", height=100)
 
             elif tipo == "accordion":
                 st.text_input("Titolo", value=b.get("accordion_title", ""), key=f"at{bid}")
