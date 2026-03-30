@@ -100,10 +100,20 @@ def wp_write(ep, data):
         return False, str(e)
 
 def wp_upload(fbytes, fname):
+    ext = fname.rsplit(".", 1)[-1].lower() if "." in fname else ""
+    mime_type = "image/jpeg"
+    if ext == "png": mime_type = "image/png"
+    elif ext == "gif": mime_type = "image/gif"
+    elif ext == "webp": mime_type = "image/webp"
+
     for _ in range(3):
         try:
             url = f"{API_BASE}/media"
-            headers = {**_auth(), "Content-Disposition": f'attachment; filename="{fname}"'}
+            headers = {
+                **_auth(), 
+                "Content-Disposition": f'attachment; filename="{fname}"',
+                "Content-Type": mime_type
+            }
             r = _make_req("POST", url, headers=headers, data=fbytes, timeout=30)
             if r.status_code in [200, 201]:
                 return r.json().get("source_url")
