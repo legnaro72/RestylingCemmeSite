@@ -60,8 +60,8 @@ def _make_req(method, url, **kwargs):
     kwargs["headers"] = headers
 
     # Staging basic auth (hosting)
-    staging_user = os.getenv("STAGING_BASIC_USER")
-    staging_pass = os.getenv("STAGING_BASIC_PASSWORD")
+    staging_user = os.getenv("STAGING_BASIC_USER", "info_5qownsi4")
+    staging_pass = os.getenv("STAGING_BASIC_PASSWORD", "ES2Q!Fff1_7*803e")
     
     if staging_user and staging_pass:
         kwargs["auth"] = (staging_user, staging_pass)
