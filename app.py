@@ -483,7 +483,7 @@ if st.session_state.mode == "home":
                 deleted = 0
                 for p in posts:
                     if st.session_state.get(f"chk_{p['id']}"):
-                        res = _make_req("DELETE", f"{API_BASE}/posts/{p['id']}?force=true")
+                        res = _make_req("DELETE", f"{API_BASE}/posts/{p['id']}", params={"force": True})
                         if res and res.status_code in [200, 204]: deleted += 1
                 if deleted > 0:
                     st.session_state.msg = f"{deleted} News eliminate!"
@@ -516,12 +516,18 @@ if st.session_state.mode == "home":
                 st.rerun()
         with c4:
             if st.button("🗑️ Elimina", key=f"dp_{pid}", use_container_width=True):
-                res = _make_req("DELETE", f"{API_BASE}/posts/{pid}?force=true")
+                res = _make_req("DELETE", f"{API_BASE}/posts/{pid}", params={"force": True})
                 if res and res.status_code in [200, 204]:
                     st.session_state.msg = "News eliminata!"
                     st.session_state.msg_ok = True
                 else:
-                    st.session_state.msg = "Errore durante l'eliminazione."
+                    err = ""
+                    if res:
+                        try:
+                            err = f"(HTTP {res.status_code}) - {res.json().get('message', '')}"
+                        except:
+                            err = f"(HTTP {res.status_code})"
+                    st.session_state.msg = f"Errore durante l'eliminazione. {err}"
                     st.session_state.msg_ok = False
                 st.rerun()
 
