@@ -61,18 +61,13 @@ def _auth():
 def _make_req(method, url, **kwargs):
     headers = kwargs.get("headers", {})
     
-    # WordPress API auth
     wp_token = base64.b64encode(f"{WP_USER}:{WP_APP_PASSWORD}".encode()).decode()
     headers["Authorization"] = f"Basic {wp_token}"
     
     kwargs["headers"] = headers
 
-    # Staging basic auth (hosting)
-    staging_user = get_env("STAGING_BASIC_USER", "info_5qownsi4")
-    staging_pass = get_env("STAGING_BASIC_PASSWORD", "ES2Q!Fff1_7*803e")
-    
-    if staging_user and staging_pass:
-        kwargs["auth"] = (staging_user, staging_pass)
+    # RIMOSSO: Il basic auth dello staging (auth) sovrascriveva l'header Authorization di WordPress
+    # causando Errore 401 (Non Logged In) sulle API private.
 
     if method == "GET":
         return requests.get(url, **kwargs)
